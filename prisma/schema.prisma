@@ -1,15 +1,115 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
-  provider = "prisma-client"
-  output   = "../lib/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Restaurant {
+  id                    String   @id @default(cuid())
+  name                  String
+  alertDaysBeforeExpiry Int      @default(3)
+  
+  users                 User[]
+  categories            Category[]
+  locations             Location[]
+  productBatches        ProductBatch[]
+  productTemplates      ProductTemplate[]
+
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+model User {
+  id           String     @id @default(cuid())
+  name         String?
+  email        String     @unique
+  
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+  
+  batches      ProductBatch[]
+
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model Category {
+  id           String         @id @default(cuid())
+  name         String
+  
+  restaurantId String
+  restaurant   Restaurant     @relation(fields: [restaurantId], references: [id])
+  
+  batches      ProductBatch[]
+
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  @@unique([restaurantId, name])
+}
+
+model Location {
+  id           String         @id @default(cuid())
+  name         String
+
+  restaurantId String
+  restaurant   Restaurant     @relation(fields: [restaurantId], references: [id])
+
+  batches      ProductBatch[]
+
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  @@unique([restaurantId, name])
+}
+
+model ProductTemplate {
+  id           String     @id @default(cuid())
+  name         String
+  
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@unique([restaurantId, name])
+}
+
+enum BatchStatus {
+  ACTIVE
+  USED
+  DISCARDED
+  EXPIRED
+}
+
+model ProductBatch {
+  id           String      @id @default(cuid())
+  name         String
+  quantity     Float
+  unit         String      @default("un")
+  
+  expiryDate   DateTime
+  imageUrl     String?
+  
+  status       BatchStatus @default(ACTIVE)
+
+  restaurantId String
+  restaurant   Restaurant  @relation(fields: [restaurantId], references: [id])
+
+  categoryId   String?
+  category     Category?   @relation(fields: [categoryId], references: [id])
+
+  locationId   String?
+  location     Location?   @relation(fields: [locationId], references: [id])
+  
+  userId       String?
+  user         User?       @relation(fields: [userId], references: [id])
+
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
 }
